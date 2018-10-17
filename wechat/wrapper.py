@@ -13,7 +13,7 @@ from django.template.loader import get_template
 
 from WeChatTicket import settings
 from codex.baseview import BaseView
-from wechat.models import User
+from wechat.models import User,Activity,Ticket
 
 
 __author__ = "Epsirom"
@@ -67,6 +67,22 @@ class WeChatHandler(object):
         return get_template('messages/' + name + '.html').render(dict(
             handler=self, user=self.user, **data
         ))
+        #self.logger.warn(repr(result))
+        #return result
+
+    def get_activity(self,id):
+        activity = Activity.objects.filter(id=int(id))
+        if not activity:
+            return activity
+        return activity[0]
+
+    def get_activities(self):
+        activities = Activity.objects.filter(status = Activity.STATUS_PUBLISHED)
+        return activities
+
+    def get_tickets(self):
+        tickets = Ticket.objects.filter(student_id = self.user.student_id)
+        return tickets
 
     def is_msg_type(self, check_type):
         return self.input['MsgType'] == check_type
@@ -88,6 +104,12 @@ class WeChatHandler(object):
 
     def url_bind(self):
         return settings.get_url('u/bind', {'openid': self.user.open_id})
+    
+    def url_book(self,id):
+        return settings.get_url('u/activity',{'id': id})
+
+    def url_ticket(self,ticket):
+        return  settings.get_url('u/ticket',{'openid': self.user.open_id,'ticket':ticket})
 
 
 class WeChatEmptyHandler(WeChatHandler):
