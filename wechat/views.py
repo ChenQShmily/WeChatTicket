@@ -18,6 +18,8 @@ class CustomWeChatView(WeChatView):
         BookActivityHandler,
         BookWhatHandler,
         GetTicketHandler,
+        PickTicketHandler,
+        CancelTicketHandler,
     ]
 
     error_message_handler = ErrorHandler
@@ -115,3 +117,4 @@ class CustomWeChatView(WeChatView):
                 id__in=activity_ids, status=Activity.STATUS_PUBLISHED, book_end__gt=timezone.now()
             ).order_by('book_end')[: 5])
         cls.lib.set_wechat_menu(cls.menu)
+
