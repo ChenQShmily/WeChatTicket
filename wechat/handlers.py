@@ -35,7 +35,7 @@ class HelpOrSubscribeHandler(WeChatHandler):
 
     def handle(self):
         return self.reply_single_news({
-            'Title': 'help',
+            'Title': self.get_message('help_title'),
             'Description': self.get_message('help_description'),
             'Url': self.url_help(),
         })
@@ -83,7 +83,7 @@ class BookActivityHandler(WeChatHandler):
 
     def handle(self):
         if not self.user.student_id:
-            return self.reply_text('对不起，您尚未绑定，无法抢票')
+            return self.reply_text(self.get_message('bind_account'))
 
         currentTime = datetime.datetime.now().timestamp()
         if self.is_event('CLICK'):
@@ -105,6 +105,7 @@ class BookActivityHandler(WeChatHandler):
                     return self.reply_text('您已经抢过该活动的票且使用过')
                 #lock!lock!lock!
                 ticket = self.book_ticket(act_id)
+                activity = self.get_activity(act_id)
                 if ticket:
                     return self.reply_single_news({
                         'Title':activity.name,
@@ -134,7 +135,7 @@ class BookActivityHandler(WeChatHandler):
                 return self.reply_text('您已经抢过该活动的票且使用过')
             if activity.remain_tickets == 0:
                 return self.reply_text('没有多的票了！请自行尝试劝退抢到票的朋友们~')
-            unique_id = uuid.uuid5(uuid.NAMESPACE_DNS,self.user.student_id + activity.name)
+            unique_id = uuid.uuid5(uuid.NAMESPACE_DNS,self.user.student_id + activity.name + str(currentTime))
             Ticket.objects.create(student_id = self.user.student_id, unique_id = unique_id,
             activity = activity, status = Ticket.STATUS_VALID)
             activity.remain_tickets -= 1
@@ -191,6 +192,7 @@ class GetTicketHandler(WeChatHandler):
                     str1 = '有效票已使用'
                 else:
                     str1 = '已退票'
+                self.logger.warn(str1)
                 articles.append({
                     'Title':ticket.activity.name + '   ' + str1,
                     'Description':'电子票查看',

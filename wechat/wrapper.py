@@ -47,7 +47,8 @@ class WeChatHandler(object):
         return self.create_ticket(act_id)
 
     def create_ticket(self,id):
-        unique_id = uuid.uuid5(uuid.NAMESPACE_DNS,self.user.student_id + id)
+        currentTime = datetime.datetime.now().timestamp()
+        unique_id = uuid.uuid5(uuid.NAMESPACE_DNS,self.user.student_id + id + str(currentTime))
         activity = Activity.objects.get(id = int(id))
         Ticket.objects.create(student_id = self.user.student_id, unique_id = unique_id,
         activity = activity, status = Ticket.STATUS_VALID)
@@ -81,10 +82,10 @@ class WeChatHandler(object):
         ))
 
     def reply_news(self, articles):
-        if len(articles) > 10:
-            self.logger.warn('Reply with %d articles, keep only 10', len(articles))
+        if len(articles) > 8:
+            self.logger.warn('Reply with %d articles, keep only 8', len(articles))
         return get_template('news.xml').render(self.get_context(
-            Articles=articles[:10]
+            Articles=articles[:8]
         ))
 
     def reply_single_news(self, article):
