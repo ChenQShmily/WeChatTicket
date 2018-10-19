@@ -93,7 +93,7 @@ class BookActivityHandler(WeChatHandler):
                 act_id = self.input['EventKey'][len(self.view.event_keys['book_header']):]
                 activity = self.get_activity(act_id)
                 if not activity:
-                    return self.reply_text('对不起，服务器现在有点忙，暂时不能给您答复 T T')
+                    return self.reply_text('对不起，没有该项活动')
                 if currentTime < activity.book_start.timestamp():
                     return self.reply_text('对不起，还未开放抢票')
                 if currentTime > activity.book_end.timestamp():
@@ -123,7 +123,7 @@ class BookActivityHandler(WeChatHandler):
             if not activity:
                 activity = Activity.objects.filter(name = query).first()
                 if not activity:
-                    return self.reply_text('对不起，没有您要抢的票')
+                    return self.reply_text('对不起，没有该项活动')
             if currentTime < activity.book_start.timestamp():
                 return self.reply_text('对不起，还未开放抢票')
             if currentTime > activity.book_end.timestamp():
@@ -137,6 +137,8 @@ class BookActivityHandler(WeChatHandler):
             unique_id = uuid.uuid5(uuid.NAMESPACE_DNS,self.user.student_id + activity.name)
             Ticket.objects.create(student_id = self.user.student_id, unique_id = unique_id,
             activity = activity, status = Ticket.STATUS_VALID)
+            activity.remain_tickets -= 1
+            activity.save()
             ticket = self.url_ticket(unique_id)
             return self.reply_single_news({
                 'Title':activity.name,
@@ -179,9 +181,12 @@ class GetTicketHandler(WeChatHandler):
             if not tickets:
                 return self.reply_text('对不起，当前没有已经购买的票')
             articles = []
+            currentTime = datetime.datetime.now().timestamp()
             for ticket in tickets:
                 if ticket.status == Ticket.STATUS_VALID:
                     str1 = '有效票未使用'
+                    if currentTime > ticket.activity.end_time.timestamp():
+                        str1 += '   活动已结束'
                 elif ticket.status == Ticket.STATUS_USED:
                     str1 = '有效票已使用'
                 else:
@@ -190,7 +195,7 @@ class GetTicketHandler(WeChatHandler):
                     'Title':ticket.activity.name + '   ' + str1,
                     'Description':'电子票查看',
                     'Url':self.url_ticket(ticket.unique_id),
-                    'PicUrl':ticket.activity.pic_url,
+                    'PicUrl':ticket.activity.pic_url,                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       
                 })
             return self.reply_news(articles)
         else:

@@ -40,7 +40,8 @@ WECHAT_SECRET = CONFIGS['WECHAT_SECRET']
 
 ALLOWED_HOSTS = [
     'd4a939f0.ngrok.io',
-    'localhost'
+    'localhost',
+    '0a9992cc.ngrok.io'
 ]
 
 
