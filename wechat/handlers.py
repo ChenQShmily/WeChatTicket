@@ -169,7 +169,10 @@ class BookWhatHandler(WeChatHandler):
                     'Url': self.url_book(activity.id),
                     'PicUrl': activity.pic_url,
                 })
-        return self.reply_news(articles)
+        if len(articles) > 0:
+            return self.reply_news(articles)
+        else:
+            return self.reply_text('对不起，现在没有正在抢票的活动')
 
 #查票
 class GetTicketHandler(WeChatHandler):
@@ -207,15 +210,22 @@ class GetTicketHandler(WeChatHandler):
                 activity = Activity.objects.filter(name = query).first()
                 if not activity:
                     return self.reply_text('对不起，没有这场活动')
-            ticket = Ticket.objects.filter(student_id = self.user.student_id, activity = activity).first()
-            if not ticket:
-                return self.reply_text('对不起，当前没有已经购买的票')
-            return self.reply_single_news({
-                'Title':ticket.activity.name,
-                'Description':'电子票查看',
-                'Url':self.url_ticket(ticket.unique_id),
-                'PicUrl':ticket.activity.pic_url,
-                })
+            tickets = Ticket.objects.filter(student_id = self.user.student_id, activity = activity)
+            if not tickets:
+                return self.reply_text('对不起，当前没有已经购买的有效票')
+            for ticket in tickets:
+                if ticket.status == Ticket.STATUS_VALID:
+                    currentTime = datetime.datetime.now().timestamp()
+                    str1 = '有效票未使用'
+                    if currentTime > ticket.activity.end_time.timestamp():
+                        str1 += '   活动已结束'
+                    return self.reply_single_news({
+                    'Title':ticket.activity.name + '   ' + str1,
+                    'Description':'电子票查看',
+                    'Url':self.url_ticket(ticket.unique_id),
+                    'PicUrl':ticket.activity.pic_url,
+                    })
+            return self.reply_text('对不起，当前没有已经购买的有效票')
 
 #取票
 class PickTicketHandler(WeChatHandler):
@@ -229,15 +239,22 @@ class PickTicketHandler(WeChatHandler):
             activity = Activity.objects.filter(name = query).first()
             if not activity:
                 return self.reply_text('对不起，没有这场活动')
-        ticket = Ticket.objects.filter(student_id = self.user.student_id, activity = activity).first()
-        if not ticket:
-            return self.reply_text('对不起，当前没有已经购买的票')
-        return self.reply_single_news({
-            'Title':ticket.activity.name,
-            'Description':'电子票查看',
-            'Url':self.url_ticket(ticket.unique_id),
-            'PicUrl':ticket.activity.pic_url,
-            })
+        tickets = Ticket.objects.filter(student_id = self.user.student_id, activity = activity)
+        if not tickets:
+            return self.reply_text('对不起，当前没有已经购买的有效票')
+        for ticket in tickets:
+            if ticket.status == Ticket.STATUS_VALID:
+                currentTime = datetime.datetime.now().timestamp()
+                str1 = '有效票未使用'
+                if currentTime > ticket.activity.end_time.timestamp():
+                    str1 += '   活动已结束'
+                return self.reply_single_news({
+                'Title':ticket.activity.name + '   ' + str1,
+                'Description':'电子票查看',
+                'Url':self.url_ticket(ticket.unique_id),
+                'PicUrl':ticket.activity.pic_url,
+                })
+        return self.reply_text('对不起，当前没有已经购买的有效票')
 
 #退票
 class CancelTicketHandler(WeChatHandler):
@@ -256,6 +273,9 @@ class CancelTicketHandler(WeChatHandler):
             if not ticket:
                 return self.reply_text('对不起，您没有本场活动未使用的有效票')
             else:
+                currentTime = datetime.datetime.now().timestamp()
+                if currentTime > ticket.activity.end_time.timestamp():
+                    return self.reply_text('对不起，活动已经结束，不能退票')
                 activity.remain_tickets += 1
                 activity.save()
                 ticket.status = Ticket.STATUS_CANCELLED
